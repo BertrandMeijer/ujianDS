@@ -1,0 +1,71 @@
+import java.util.LinkedList;
+
+public class CacheSystem {
+    private final int SIZE = 100;
+    private final LinkedList<CacheEntry>[] cacheTable;
+
+    @SuppressWarnings("unchecked")
+    public CacheSystem() {
+        // Inisialisasi tabel cache dengan ukuran tetap
+        cacheTable = new LinkedList[SIZE];
+        for (int i = 0; i < SIZE; i++) {
+            cacheTable[i] = new LinkedList<>();
+        }
+    }
+
+    // Fungsi hash untuk menghasilkan indeks dari key
+    private int hashFunction(String key) {
+        // Menghitung nilai hash dari key dan mengembalikan indeks dalam rentang 0 hingga SIZE-1
+        return Math.abs(key.hashCode()) % SIZE;
+    }
+
+    // Metode untuk menyimpan data dalam cache dengan penanganan collision menggunakan chaining
+    public void put(String key, String data) {
+        int index = hashFunction(key); // Dapatkan indeks menggunakan hash function
+        for (CacheEntry entry : cacheTable[index]) {
+            if (entry.key.equals(key)) {
+                entry.data = data; // Perbarui data jika key sudah ada
+                return;
+            }
+        }
+        cacheTable[index].add(new CacheEntry(key, data)); // Tambahkan entri baru jika key tidak ditemukan
+    }
+
+    // Metode untuk mengambil data dari cache berdasarkan key
+    public String get(String key) {
+        int index = hashFunction(key); // Dapatkan indeks menggunakan hash function
+        for (CacheEntry entry : cacheTable[index]) {
+            if (entry.key.equals(key)) {
+                return entry.data; // Kembalikan data jika key ditemukan
+            }
+        }
+        return null; // Kembalikan null jika key tidak ditemukan
+    }
+
+    // Kelas statis untuk menyimpan entri cache (key-value pair)
+    private static class CacheEntry {
+        String key;
+        String data;
+
+        CacheEntry(String key, String data) {
+            this.key = key;
+            this.data = data;
+        }
+    }
+
+    // Main method untuk pengujian
+    public static void main(String[] args) {
+        CacheSystem cache = new CacheSystem();
+
+        // Menyimpan data dalam cache
+        cache.put("key1", "data1");
+        cache.put("key2", "data2");
+        cache.put("key3", "data3");
+
+        // Mengambil data dari cache
+        System.out.println("Key1: " + cache.get("key1")); // Output: Key1: data1
+        System.out.println("Key2: " + cache.get("key2")); // Output: Key2: data2
+        System.out.println("Key3: " + cache.get("key3")); // Output: Key3: data3
+        System.out.println("Key4: " + cache.get("key4")); // Output: Key4: null (karena key4 tidak ada)
+    }
+}
