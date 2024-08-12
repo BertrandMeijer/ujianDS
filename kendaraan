@@ -1,0 +1,116 @@
+import java.util.LinkedList;
+
+// Kelas untuk merepresentasikan entri kendaraan
+class Vehicle {
+    int plateNumber; // Variabel untuk menyimpan plat nomor kendaraan
+    String vehicleDetails; // Variabel untuk menyimpan detail kendaraan
+
+    Vehicle(int plateNumber, String vehicleDetails) {
+        this.plateNumber = plateNumber; // Inisialisasi plat nomor kendaraan
+        this.vehicleDetails = vehicleDetails; // Inisialisasi detail kendaraan
+    }
+
+    @Override
+    public String toString() {
+        // Mengoverride metode toString untuk menampilkan informasi kendaraan dengan format yang lebih mudah dibaca
+        return "Plat Nomor: " + plateNumber + ", Detail Kendaraan: " + vehicleDetails;
+    }
+}
+
+// Kelas untuk merepresentasikan Hash Table yang digunakan sebagai tempat parkir
+class ParkingLot {
+    private final LinkedList<Vehicle>[] hashTable; // Array dari LinkedList yang akan menyimpan data kendaraan
+    private final int SIZE = 10; // Ukuran dari hash table
+
+    @SuppressWarnings("unchecked")
+    ParkingLot() {
+        hashTable = new LinkedList[SIZE]; // Inisialisasi array hash table dengan ukuran tertentu
+        for (int i = 0; i < SIZE; i++) {
+            hashTable[i] = new LinkedList<>(); // Inisialisasi setiap elemen dalam array sebagai LinkedList kosong
+        }
+    }
+
+    // Fungsi hash untuk mendapatkan indeks dari plat nomor
+    private int hashFunction(int plateNumber) {
+        return plateNumber % SIZE; // Menggunakan operasi modulus untuk menentukan slot hash
+    }
+
+    // Menambahkan kendaraan ke hash table
+    public void parkVehicle(int plateNumber, String vehicleDetails) {
+        int index = hashFunction(plateNumber); // Mendapatkan indeks dengan menggunakan fungsi hash
+        Vehicle vehicle = new Vehicle(plateNumber, vehicleDetails); // Membuat objek kendaraan baru
+        hashTable[index].add(vehicle); // Menambahkan kendaraan ke slot yang sesuai di hash table
+        System.out.println("Kendaraan diparkir pada slot: " + index);
+    }
+
+    // Mencari kendaraan berdasarkan plat nomor
+    public Vehicle findVehicle(int plateNumber) {
+        int index = hashFunction(plateNumber); // Mendapatkan indeks dengan menggunakan fungsi hash
+        for (Vehicle vehicle : hashTable[index]) { // Mencari kendaraan di LinkedList pada slot yang sesuai
+            if (vehicle.plateNumber == plateNumber) {
+                return vehicle; // Mengembalikan kendaraan jika ditemukan
+            }
+        }
+        return null; // Mengembalikan null jika kendaraan tidak ditemukan
+    }
+
+    // Menghapus kendaraan dari hash table berdasarkan plat nomor
+    public boolean removeVehicle(int plateNumber) {
+        int index = hashFunction(plateNumber); // Mendapatkan indeks dengan menggunakan fungsi hash
+        for (Vehicle vehicle : hashTable[index]) { // Mencari kendaraan di LinkedList pada slot yang sesuai
+            if (vehicle.plateNumber == plateNumber) {
+                hashTable[index].remove(vehicle); // Menghapus kendaraan jika ditemukan
+                System.out.println("Kendaraan dengan plat nomor " + plateNumber + " telah dihapus dari slot: " + index);
+                return true; // Mengembalikan true jika penghapusan berhasil
+            }
+        }
+        System.out.println("Kendaraan dengan plat nomor " + plateNumber + " tidak ditemukan.");
+        return false; // Mengembalikan false jika kendaraan tidak ditemukan
+    }
+
+    // Menampilkan seluruh isi hash table
+    public void displayParkingLot() {
+        for (int i = 0; i < SIZE; i++) {
+            System.out.print("Slot " + i + ": ");
+            if (hashTable[i].isEmpty()) { // Memeriksa apakah LinkedList pada slot kosong
+                System.out.println("Kosong");
+            } else {
+                for (Vehicle vehicle : hashTable[i]) { // Menampilkan setiap kendaraan di slot
+                    System.out.print(vehicle + " -> ");
+                }
+                System.out.println("null"); // Menandakan akhir dari LinkedList pada slot
+            }
+        }
+    }
+}
+
+// Kelas utama untuk menjalankan program
+public class HashingWithCollisionHandling {
+    public static void main(String[] args) {
+        ParkingLot parkingLot = new ParkingLot(); // Membuat instance dari ParkingLot
+
+        // Menambahkan kendaraan ke hash table
+        parkingLot.parkVehicle(1234, "Mobil Toyota Avanza");
+        parkingLot.parkVehicle(5678, "Mobil Honda Jazz");
+        parkingLot.parkVehicle(2345, "Mobil Suzuki Swift");
+        parkingLot.parkVehicle(6789, "Mobil Nissan X-Trail");
+        parkingLot.parkVehicle(1234, "Mobil Daihatsu Terios"); // Ini akan menyebabkan collision karena plat nomor yang sama
+
+        // Menampilkan isi parking lot
+        System.out.println("\nIsi Parking Lot:");
+        parkingLot.displayParkingLot();
+
+        // Mencari kendaraan berdasarkan plat nomor
+        System.out.println("\nMencari kendaraan dengan plat nomor 1234:");
+        Vehicle vehicle = parkingLot.findVehicle(1234); // Mencari kendaraan dengan plat nomor 1234
+        System.out.println(vehicle != null ? vehicle : "Kendaraan tidak ditemukan.");
+
+        // Menghapus kendaraan dari hash table
+        System.out.println("\nMenghapus kendaraan dengan plat nomor 5678:");
+        parkingLot.removeVehicle(5678); // Menghapus kendaraan dengan plat nomor 5678
+
+        // Menampilkan isi parking lot setelah penghapusan
+        System.out.println("\nIsi Parking Lot setelah penghapusan:");
+        parkingLot.displayParkingLot();
+    }
+}
