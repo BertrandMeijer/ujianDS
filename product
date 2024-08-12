@@ -1,0 +1,244 @@
+// Kelas untuk merepresentasikan sebuah produk
+class Product {
+    int productID;  // ID produk sebagai kunci utama
+    String productName;  // Nama produk
+    String category;  // Kategori produk
+    double price;  // Harga produk
+    int stockQuantity;  // Jumlah stok produk
+    int supplierID;  // ID pemasok produk
+    double rating;  // Rating produk
+
+    // Konstruktor untuk menginisialisasi semua atribut produk
+    Product(int productID, String productName, String category, double price, int stockQuantity, int supplierID, double rating) {
+        this.productID = productID;
+        this.productName = productName;
+        this.category = category;
+        this.price = price;
+        this.stockQuantity = stockQuantity;
+        this.supplierID = supplierID;
+        this.rating = rating;
+    }
+
+    // Override metode toString untuk mencetak informasi produk
+    @Override
+    public String toString() {
+        return "ProductID: " + productID + ", ProductName: " + productName + ", Category: " + category + 
+               ", Price: " + price + ", StockQuantity: " + stockQuantity + ", SupplierID: " + supplierID + 
+               ", Rating: " + rating;
+    }
+}
+
+// Kelas untuk merepresentasikan node pada B-Tree
+class BTreeNode {
+    int[] keys;  // Array untuk menyimpan kunci produk (productID)
+    Product[] products;  // Array untuk menyimpan data produk
+    int degree;  // Nilai B pada B-Tree, menentukan kapasitas maksimum node
+    BTreeNode[] children;  // Array untuk menyimpan anak node
+    int numKeys;  // Jumlah kunci yang saat ini disimpan dalam node
+    boolean isLeaf;  // Menyimpan informasi apakah node ini adalah daun atau bukan
+
+    // Konstruktor untuk menginisialisasi node B-Tree
+    BTreeNode(int degree, boolean isLeaf) {
+        this.degree = degree;
+        this.isLeaf = isLeaf;
+        this.keys = new int[2 * degree - 1];  // Setiap node dapat menyimpan hingga 2 * degree - 1 kunci
+        this.products = new Product[2 * degree - 1];  // Array produk sesuai dengan kunci
+        this.children = new BTreeNode[2 * degree];  // Array anak node, berukuran degree * 2
+        this.numKeys = 0;  // Awalnya, node tidak memiliki kunci
+    }
+
+    // Fungsi untuk mencari produk berdasarkan productID
+    public Product search(int key) {
+        int i = 0;
+        // Cari posisi kunci yang diinginkan
+        while (i < numKeys && key > keys[i]) {
+            i++;
+        }
+
+        // Jika kunci ditemukan, kembalikan produk terkait
+        if (i < numKeys && keys[i] == key) {
+            return products[i];
+        }
+
+        // Jika ini adalah daun, maka kunci tidak ditemukan
+        if (isLeaf) {
+            return null;
+        }
+
+        // Jika ini bukan daun, lanjutkan pencarian pada anak node
+        return children[i].search(key);
+    }
+
+    // Fungsi untuk membagi node ketika penuh
+    public void splitChild(int i, BTreeNode y) {
+        BTreeNode z = new BTreeNode(y.degree, y.isLeaf);  // Buat node baru untuk menyimpan sebagian dari kunci
+        z.numKeys = degree - 1;  // Node baru akan memiliki degree - 1 kunci
+
+        // Pindahkan setengah kedua kunci dan produk dari y ke z
+        for (int j = 0; j < degree - 1; j++) {
+            z.keys[j] = y.keys[j + degree];
+            z.products[j] = y.products[j + degree];
+        }
+
+        // Jika y bukan daun, pindahkan anak-anak juga
+        if (!y.isLeaf) {
+            for (int j = 0; j < degree; j++) {
+                z.children[j] = y.children[j + degree];
+            }
+        }
+
+        y.numKeys = degree - 1;  // Kurangi jumlah kunci di y
+
+        // Pindahkan anak-anak dari node ini untuk memberi ruang bagi z
+        for (int j = numKeys; j >= i + 1; j--) {
+            children[j + 1] = children[j];
+        }
+
+        children[i + 1] = z;  // Hubungkan z sebagai anak baru
+
+        // Pindahkan kunci-kunci di node ini untuk memberi ruang bagi kunci baru dari y
+        for (int j = numKeys - 1; j >= i; j--) {
+            keys[j + 1] = keys[j];
+            products[j + 1] = products[j];
+        }
+
+        // Naikkan kunci tengah y ke node ini
+        keys[i] = y.keys[degree - 1];
+        products[i] = y.products[degree - 1];
+
+        numKeys++;  // Tambah jumlah kunci di node ini
+    }
+
+    // Fungsi untuk memasukkan produk ke dalam node yang tidak penuh
+    public void insertNonFull(Product product) {
+        int key = product.productID;
+        int i = numKeys - 1;
+
+        // Jika node ini adalah daun, tambahkan kunci ke dalam node ini
+        if (isLeaf) {
+            // Pindahkan kunci-kunci yang lebih besar dari kunci baru ke kanan
+            while (i >= 0 && keys[i] > key) {
+                keys[i + 1] = keys[i];
+                products[i + 1] = products[i];
+                i--;
+            }
+
+            // Tempatkan kunci dan produk pada posisi yang sesuai
+            keys[i + 1] = key;
+            products[i + 1] = product;
+            numKeys++;
+        } else {
+            // Cari anak yang akan menerima kunci baru
+            while (i >= 0 && keys[i] > key) {
+                i--;
+            }
+
+            // Jika anak penuh, bagi anak tersebut
+            if (children[i + 1].numKeys == 2 * degree - 1) {
+                splitChild(i + 1, children[i + 1]);
+
+                // Setelah pembagian, tentukan anak mana yang akan menerima kunci baru
+                if (keys[i + 1] < key) {
+                    i++;
+                }
+            }
+            children[i + 1].insertNonFull(product);  // Rekursif masukkan kunci pada anak yang sesuai
+        }
+    }
+
+    // Fungsi untuk menampilkan B-Tree
+    public void display() {
+        int i;
+        for (i = 0; i < numKeys; i++) {
+            // Jika bukan daun, tampilkan anak-anak sebelum kunci
+            if (!isLeaf) {
+                children[i].display();
+            }
+            // Tampilkan produk pada node ini
+            System.out.println(products[i]);
+        }
+
+        // Tampilkan anak-anak terakhir jika bukan daun
+        if (!isLeaf) {
+            children[i].display();
+        }
+    }
+}
+
+// Kelas untuk B-Tree
+class BTree {
+    BTreeNode root;  // Root dari B-Tree
+    int degree;  // Nilai B pada B-Tree
+
+    // Konstruktor untuk menginisialisasi B-Tree
+    BTree(int degree) {
+        this.root = null;
+        this.degree = degree;
+    }
+
+    // Fungsi untuk mencari produk berdasarkan productID
+    public Product search(int key) {
+        // Jika root null, kembalikan null
+        return root == null ? null : root.search(key);
+    }
+
+    // Fungsi untuk memasukkan produk ke dalam B-Tree
+    public void insert(Product product) {
+        // Jika root null, buat node root baru
+        if (root == null) {
+            root = new BTreeNode(degree, true);
+            root.keys[0] = product.productID;
+            root.products[0] = product;
+            root.numKeys = 1;
+        } else {
+            // Jika root penuh, bagi root dan buat root baru
+            if (root.numKeys == 2 * degree - 1) {
+                BTreeNode s = new BTreeNode(degree, false);
+                s.children[0] = root;
+                s.splitChild(0, root);
+                int i = 0;
+                if (s.keys[0] < product.productID) {
+                    i++;
+                }
+                s.children[i].insertNonFull(product);
+                root = s;
+            } else {
+                root.insertNonFull(product);  // Masukkan produk ke dalam root yang tidak penuh
+            }
+        }
+    }
+
+    // Fungsi untuk menampilkan B-Tree
+    public void display() {
+        if (root != null) {
+            root.display();  // Tampilkan tree dari root
+        }
+    }
+}
+
+// Kelas utama untuk menjalankan contoh B-Tree
+public class BTreeExample {
+    public static void main(String[] args) {
+        BTree bTree = new BTree(3); // Menginisialisasi B-Tree dengan degree 3
+
+        // Menambahkan beberapa produk ke dalam B-Tree
+        bTree.insert(new Product(101, "Laptop", "Electronics", 1200.00, 50, 201, 4.5));
+        bTree.insert(new Product(102, "Smartphone", "Electronics", 800.00, 150, 202, 4.7));
+        bTree.insert(new Product(103, "Tablet", "Electronics", 400.00, 75, 203, 4.3));
+        bTree.insert(new Product(104, "Headphones", "Accessories", 150.00, 200, 204, 4.6));
+        bTree.insert(new Product(105, "Smartwatch", "Wearables", 250.00, 120, 205, 4.8));
+
+        // Menampilkan B-Tree
+        System.out.println("B-Tree Contents:");
+        bTree.display();
+
+        // Mencari produk berdasarkan productID
+        System.out.println("\nSearching for product with ID 102:");
+        Product searchedProduct = bTree.search(102);
+        if (searchedProduct != null) {
+            System.out.println("Product Found: " + searchedProduct);
+        } else {
+            System.out.println("Product Not Found");
+        }
+    }
+}
